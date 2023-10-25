@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.navbar-fixed {
+    @apply z-[9999] bg-slate-900/50 backdrop-blur-sm border-solid border-b-[0.5px] border-slate-700
+}
+
+.hamburger-active > span:nth-child(1) {
+    @apply rotate-45;
+}
+
+.hamburger-active > span:nth-child(3) {
+    @apply -rotate-45;
+}
+
+.hamburger-active > span:nth-child(2) {
+    @apply scale-0;
+}
