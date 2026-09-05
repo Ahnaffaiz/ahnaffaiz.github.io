@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tokens": "node scripts/gen-tokens.mjs"
+    "tokens": "node scripts/gen-tokens.mjs",
+    "deploy": "bash scripts/deploy-pages.sh"
   },
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
