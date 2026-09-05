@@ -1,25 +1,19 @@
 #!/usr/bin/env bash
-# Build the site and publish dist/ to the gh-pages branch.
-# Used while GitHub Actions is unavailable; the branch is disposable,
-# so the push is a force push of a single fresh commit.
+# Build the site into docs/ and push it to main, which is where GitHub
+# Pages serves from. Used while GitHub Actions is unavailable.
 set -euo pipefail
 
-root="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$root"
-
-remote="$(git remote get-url origin)"
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 npm run build
+touch docs/.nojekyll
 
-cd dist
-touch .nojekyll
-rm -rf .git
-git init -q -b gh-pages
-git add -A
-git -c user.name="$(git -C "$root" config user.name)" \
-    -c user.email="$(git -C "$root" config user.email)" \
-    commit -q -m "Deploy $(git -C "$root" rev-parse --short HEAD)"
-git push -q -f "$remote" gh-pages
-rm -rf .git
+git add -A docs
+if git diff --cached --quiet; then
+  echo "docs/ unchanged, nothing to deploy"
+  exit 0
+fi
 
-echo "Pushed dist/ to gh-pages"
+git commit -q -m "Deploy site build"
+git push -q origin main
+echo "Pushed docs/ to main"
