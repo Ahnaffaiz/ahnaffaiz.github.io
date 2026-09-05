@@ -1,0 +1,51 @@
+/* Light/dark, without covering anything up.
+ *
+ * A mode change rewrites every `--md-sys-color-*` role in one repaint. Custom
+ * properties do not interpolate, but the declarations that read them do: the
+ * moment `--md-sys-color-surface` changes, an element's computed
+ * `background-color` changes with it, and a transition on that property carries
+ * it across. So for the length of the change every element gets one, and the
+ * whole shell walks to its new palette in place — no sheet over the screen, no
+ * blank frame, the wallpaper never interrupted.
+ *
+ * Loaded last on purpose. Plenty of components declare a `transition` of their
+ * own at the same specificity as the rule below, and the later sheet is what
+ * decides a tie — otherwise those components would snap to the new colour while
+ * everything around them faded.
+ *
+ * The flag is set for the duration of the change and taken off again, so this
+ * never slows down a hover or any other colour change afterwards.
+ */
+:root[data-mode-shift] *,
+:root[data-mode-shift] *::before,
+:root[data-mode-shift] *::after {
+  transition:
+    background-color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    background-image var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    border-color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    outline-color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    fill var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    stroke var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    box-shadow var(--cae-duration-mode-shift) var(--cae-ease-standard);
+}
+
+/* The two wallpaper copies hold an image, not a colour, and the slats are
+ * mid-flight on their own timing — a transition here would fight both. */
+:root[data-mode-shift] .wallpaper__layer,
+:root[data-mode-shift] .wallpaper__slat {
+  transition: none;
+}
+
+/* A window is re-tiled by transitioning its transform and size. The rule above
+ * would replace that list wholesale and freeze a tile mid-shuffle, so windows
+ * restate their own movement alongside the colour walk. */
+:root[data-mode-shift] .window {
+  transition:
+    transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    width var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    height var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    background-color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    color var(--cae-duration-mode-shift) var(--cae-ease-standard),
+    box-shadow var(--cae-duration-mode-shift) var(--cae-ease-standard);
+}

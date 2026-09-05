@@ -1,0 +1,443 @@
+/* The wallpaper menu — a game-select take-over. A slanted filmstrip of
+ * parallelogram scene tiles over a blurred scrim, with a position indicator
+ * that tracks the strip. Everything that moves rides a spatial curve; colour is
+ * only ever a Material role, shape and timing only ever a shell token. */
+
+.wpm {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: stretch;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--cae-duration-normal) var(--cae-ease-standard),
+    visibility 0s linear var(--cae-duration-normal);
+}
+
+.wpm[data-open='true'] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--cae-duration-normal) var(--cae-ease-standard),
+    visibility 0s;
+}
+
+/* Blurred glass over the live wallpaper: the page turn behind the menu shows
+ * through, dimmed, so the transition still reads while you browse. */
+.wpm__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--md-sys-color-scrim) 62%, transparent);
+  backdrop-filter: blur(28px) saturate(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(1.1);
+}
+
+.wpm__stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-content: center;
+  justify-items: center;
+  gap: var(--cae-spacing-extra-large);
+  width: 100%;
+  height: 100%;
+  padding: var(--cae-spacing-extra-large-increased);
+  transform: scale(0.96);
+  transition: transform var(--cae-duration-large) var(--cae-ease-default-spatial);
+}
+
+.wpm[data-open='true'] .wpm__stage {
+  transform: scale(1);
+}
+
+/* ---------------- Header ---------------- */
+
+.wpm__head {
+  grid-row: 1;
+  text-align: center;
+}
+
+.wpm__eyebrow {
+  margin: 0;
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-small);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-primary);
+}
+
+.wpm__title {
+  margin: 6px 0 0;
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-extra-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ---------------- Filmstrip ---------------- */
+
+.wpm__viewport {
+  grid-row: 2;
+  position: relative;
+  align-self: center;
+  width: 100%;
+  height: calc(var(--wpm-tile-w, 260px) * 0.7);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.wpm__track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: flex;
+  gap: var(--wpm-tile-gap, 22px);
+  align-items: center;
+  height: calc(var(--wpm-tile-w, 260px) * 0.62);
+  transform: translate3d(0, 0, 0);
+  translate: 0 -50%;
+  transition: transform var(--cae-duration-slow-spatial) var(--cae-ease-default-spatial);
+  will-change: transform;
+}
+
+/* A soft beam down the centre marks where the strip is being read. */
+.wpm__marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: calc(var(--wpm-tile-w, 260px) + var(--wpm-skew, 30px));
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(
+    120% 80% at 50% 50%,
+    color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent),
+    transparent 70%
+  );
+}
+
+.wpm__tile {
+  position: relative;
+  flex: none;
+  width: var(--wpm-tile-w, 260px);
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Parallelogram slab that carries the scene. Depth (--d) and the active flag
+ * are read off JS; the thumb scales and dims, not the tile, so the entry
+ * animation on the tile never fights the selection transform. */
+.wpm__thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  clip-path: polygon(
+    var(--wpm-skew, 30px) 0,
+    100% 0,
+    calc(100% - var(--wpm-skew, 30px)) 100%,
+    0 100%
+  );
+  border-radius: 2px;
+  overflow: hidden;
+  transform: scale(0.82);
+  filter: brightness(0.62) saturate(0.85);
+  opacity: calc(1 - var(--d, 0) * 0.12);
+  transition:
+    transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    filter var(--cae-duration-normal) var(--cae-ease-standard),
+    opacity var(--cae-duration-normal) var(--cae-ease-standard);
+}
+
+.wpm__tile[data-active='true'] .wpm__thumb {
+  transform: scale(1);
+  filter: brightness(1) saturate(1.02);
+  opacity: 1;
+}
+
+.wpm__tile:hover .wpm__thumb {
+  transform: scale(0.9);
+  filter: brightness(0.82) saturate(0.95);
+}
+
+.wpm__tile[data-active='true']:hover .wpm__thumb {
+  transform: scale(1.02);
+  filter: brightness(1) saturate(1.02);
+}
+
+.wpm__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+}
+
+.wpm__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--md-sys-color-scrim) 82%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-scrim) 22%, transparent) 34%,
+    transparent 62%
+  );
+}
+
+/* The accent frame: a same-shape slab set a few pixels proud behind the thumb,
+ * so the parallelogram appears to be outlined when the tile is the one chosen.
+ * (A border or box-shadow would be eaten by the clip-path.) */
+.wpm__ring {
+  position: absolute;
+  inset: -3px;
+  z-index: 0;
+  clip-path: polygon(
+    var(--wpm-skew, 30px) 0,
+    100% 0,
+    calc(100% - var(--wpm-skew, 30px)) 100%,
+    0 100%
+  );
+  background: var(--md-sys-color-primary);
+  transform: scale(0.82);
+  opacity: 0;
+  transition:
+    transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    opacity var(--cae-duration-normal) var(--cae-ease-standard);
+}
+
+.wpm__tile[data-active='true'] .wpm__ring {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.wpm__tile:focus-visible .wpm__ring {
+  opacity: 1;
+  background: var(--md-sys-color-tertiary);
+}
+
+.wpm__label {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--wpm-skew, 30px) + var(--cae-spacing-medium));
+  right: var(--cae-spacing-large);
+  bottom: var(--cae-spacing-medium);
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  pointer-events: none;
+  opacity: calc(1 - var(--d, 0) * 0.28);
+  transition: opacity var(--cae-duration-normal) var(--cae-ease-standard);
+}
+
+.wpm__num {
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-small);
+  letter-spacing: 0.2em;
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 70%, transparent);
+}
+
+.wpm__tile[data-active='true'] .wpm__num {
+  color: var(--md-sys-color-primary);
+}
+
+.wpm__name {
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-large);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 1px 8px color-mix(in srgb, var(--md-sys-color-scrim) 70%, transparent);
+}
+
+.wpm__tag {
+  font-size: var(--cae-font-size-smaller);
+  color: color-mix(in srgb, #fff 82%, transparent);
+  text-shadow: 0 1px 6px color-mix(in srgb, var(--md-sys-color-scrim) 70%, transparent);
+}
+
+/* ---------------- Side nav ---------------- */
+
+.wpm__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 70%, transparent);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+}
+
+.wpm__nav .material-symbols-rounded {
+  font-size: 28px;
+}
+
+.wpm__nav--prev {
+  left: var(--cae-spacing-large);
+}
+
+.wpm__nav--next {
+  right: var(--cae-spacing-large);
+}
+
+.wpm__nav:hover {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.wpm__nav:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+/* ---------------- Footer: indicator + meta ---------------- */
+
+.wpm__foot {
+  grid-row: 3;
+  display: grid;
+  justify-items: center;
+  gap: var(--cae-spacing-large);
+}
+
+.wpm__indicator {
+  display: flex;
+  gap: var(--cae-spacing-small);
+  align-items: center;
+}
+
+.wpm__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 26%, transparent);
+  transition:
+    width var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    background var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+  cursor: pointer;
+}
+
+.wpm__dot[data-active='true'] {
+  width: 34px;
+  background: var(--md-sys-color-primary);
+}
+
+.wpm__meta {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.wpm__count {
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-larger);
+  letter-spacing: 0.14em;
+  color: var(--md-sys-color-on-surface);
+}
+
+.wpm__hint {
+  font-size: var(--cae-font-size-smaller);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 64%, transparent);
+}
+
+.wpm__hint kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 1px 6px;
+  margin: 0 1px;
+  border-radius: var(--cae-rounding-extra-small);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-small);
+  text-align: center;
+}
+
+/* ---------------- Entry: stage settles, tiles deal in ---------------- */
+
+@keyframes wpm-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(38px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wpm-foot-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wpm[data-open='true'] .wpm__tile {
+  animation: wpm-tile-in var(--cae-duration-default-spatial) var(--cae-ease-default-spatial)
+    calc(80ms + var(--i) * 42ms) both;
+}
+
+.wpm[data-open='true'] .wpm__head {
+  animation: wpm-foot-in var(--cae-duration-normal) var(--cae-ease-emphasized-decel) both;
+}
+
+.wpm[data-open='true'] .wpm__foot {
+  animation: wpm-foot-in var(--cae-duration-large) var(--cae-ease-emphasized-decel) 120ms both;
+}
+
+/* ---------------- Reduced motion ---------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .wpm,
+  .wpm__stage,
+  .wpm__track,
+  .wpm__thumb,
+  .wpm__ring,
+  .wpm__dot,
+  .wpm__nav {
+    transition-duration: 1ms;
+  }
+
+  .wpm[data-open='true'] .wpm__tile,
+  .wpm[data-open='true'] .wpm__head,
+  .wpm[data-open='true'] .wpm__foot {
+    animation: none;
+  }
+}
+
+/* Narrow screens: smaller chrome, arrows tucked to the edge. */
+@media (max-width: 640px) {
+  .wpm__title {
+    font-size: var(--cae-font-size-large);
+  }
+
+  .wpm__nav {
+    width: 42px;
+    height: 42px;
+  }
+
+  .wpm__hint {
+    display: none;
+  }
+}

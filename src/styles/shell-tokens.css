@@ -1,0 +1,166 @@
+/* Caelestia shell tokens, ported from the QML config defaults.
+ * Source: caelestia-dots/shell plugin/src/Caelestia/Config/{tokens,appearanceconfig}.hpp
+ */
+
+:root {
+  /* Rounding — identical scale to MD3 shape corners (RoundingTokens). */
+  --cae-rounding-extra-small: 4px;
+  --cae-rounding-small: 8px;
+  --cae-rounding-medium: 12px;
+  --cae-rounding-large: 16px;
+  --cae-rounding-large-increased: 20px;
+  --cae-rounding-extra-large: 28px;
+  --cae-rounding-extra-large-increased: 32px;
+  --cae-rounding-extra-extra-large: 48px;
+  --cae-rounding-full: 9999px;
+
+  /* Spacing / padding (SpacingTokens, PaddingTokens). */
+  --cae-spacing-extra-small: 4px;
+  --cae-spacing-small: 8px;
+  --cae-spacing-medium: 12px;
+  --cae-spacing-large: 16px;
+  --cae-spacing-large-increased: 20px;
+  --cae-spacing-extra-large: 28px;
+  --cae-spacing-extra-large-increased: 32px;
+  --cae-spacing-extra-extra-large: 48px;
+
+  /* Animation durations (AnimDurationTokens). */
+  --cae-duration-small: 200ms;
+  --cae-duration-normal: 400ms;
+  --cae-duration-large: 600ms;
+  --cae-duration-extra-large: 1000ms;
+  --cae-duration-fast-spatial: 350ms;
+  --cae-duration-default-spatial: 500ms;
+  --cae-duration-slow-spatial: 650ms;
+  --cae-duration-fast-effects: 150ms;
+  --cae-duration-default-effects: 200ms;
+  --cae-duration-slow-effects: 300ms;
+
+  /* Easing curves (AnimCurves). The spatial curves overshoot past 1 —
+   * that is where the bounce comes from. */
+  --cae-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --cae-ease-standard-accel: cubic-bezier(0.3, 0, 1, 1);
+  --cae-ease-standard-decel: cubic-bezier(0, 0, 0, 1);
+  --cae-ease-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --cae-ease-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --cae-ease-fast-spatial: cubic-bezier(0.42, 1.67, 0.21, 0.9);
+  --cae-ease-default-spatial: cubic-bezier(0.38, 1.21, 0.22, 1);
+  --cae-ease-slow-spatial: cubic-bezier(0.39, 1.29, 0.35, 0.98);
+  --cae-ease-fast-effects: cubic-bezier(0.31, 0.94, 0.34, 1);
+  --cae-ease-default-effects: cubic-bezier(0.34, 0.8, 0.34, 1);
+  --cae-ease-slow-effects: cubic-bezier(0.34, 0.88, 0.34, 1);
+
+  /* `emphasized` is a two-segment spline in QML; linear() reproduces it. */
+  --cae-ease-emphasized: linear(
+    0, 0.002, 0.01 3.6%, 0.034, 0.074 9.1%, 0.128 11.4%, 0.194 13.4%, 0.271 15%, 0.36 16.1%,
+    0.455 16.9%, 0.526, 0.605, 0.688, 0.769, 0.845, 0.902, 0.941, 0.968, 0.985, 0.996, 1
+  );
+
+  /* Shell dimensions (BarTokens, SidebarTokens, NotifsTokens, ...). */
+  --cae-bar-inner-width: 40px;
+  --cae-bar-width: 52px;
+  --cae-notif-width: 380px;
+  --cae-sidebar-width: 430px;
+  --cae-osd-slider-width: 30px;
+  --cae-osd-slider-height: 150px;
+  --cae-launcher-item-width: 600px;
+  --cae-launcher-item-height: 57px;
+  --cae-dashboard-tab-indicator-height: 3px;
+  --cae-session-button: 80px;
+
+  /* Bezel: the translucent frame around the desktop (top bar, sidebar,
+   * bottom bar). MD3 surfaces stay tonal; the transparency comes from
+   * color-mix against the surface role, never a hardcoded rgba. */
+  --cae-bezel-tint: 46%;
+  /* Heavy on purpose: `backdrop-filter` clamps at an element's own edge, so a
+   * small pane blurs only its own patch of wallpaper and drifts away from the
+   * frame's tone. A wide radius averages that patch flat. */
+  --cae-bezel-blur: 70px;
+  --cae-bezel-surface: color-mix(
+    in srgb,
+    var(--md-sys-color-surface-container) var(--cae-bezel-tint),
+    transparent
+  );
+  --cae-bezel-hairline: color-mix(in srgb, var(--md-sys-color-outline) 45%, transparent);
+
+  /* Windows are the same glass as the bezel, one shade denser so text on them
+   * stays readable over a busy wallpaper. The topbar carries no fill of its
+   * own — it is a strip of this surface, which is why there is no divider. */
+  --cae-window-surface: color-mix(
+    in srgb,
+    var(--md-sys-color-surface-container) 62%,
+    transparent
+  );
+  --cae-window-blur: 32px;
+
+  /* Gutter between tiles, and between a tile and the screen's edge. */
+  --cae-tile-gap: 10px;
+
+  /* A wallpaper change is a page turn rather than a dissolve, so it runs long
+   * enough to read as one movement; light and dark is a shorter one, since
+   * every surface walks to its new tone at the same time. */
+  --cae-duration-wallpaper: 1000ms;
+  --cae-duration-mode-shift: 420ms;
+
+  /* Pieces that grow out of the frame cast away from the joint, never back
+   * across it — a shadow on the seam is what stops two surfaces reading as one. */
+  /* Frame metrics. The top, bottom and right edges are thin bezelles; the
+   * left one is wide because it carries the dock. The frame is a single
+   * rounded slab floating on the wallpaper, and the screen is one shape cut
+   * out of it — the notch is simply where that shape is missing. */
+  /* The frame runs to the viewport edge on all four sides — no gap, so the
+   * bezel merges with the outside rather than floating on the wallpaper. */
+  --cae-frame-gap: 0px;
+  --cae-frame-radius: 0px;
+  --cae-topbar-height: 12px;
+  --cae-bottombar-height: 12px;
+  --cae-side-bezel: 12px;
+  --cae-screen-radius: var(--cae-rounding-large-increased);
+
+  /* Notch, closed and opened. Both clip paths share a command list so the
+   * shape can morph between them. */
+  --cae-notch-width: 232px;
+  --cae-notch-height: 34px;
+  --cae-notch-corner: 18px;
+  --cae-notch-fillet: 18px;
+  --cae-notch-open-width: 1020px;
+  --cae-notch-open-height: 560px;
+  --cae-notch-open-corner: 28px;
+  --cae-notch-open-fillet: 40px;
+
+  /* Each dashboard tab is sized against its own content rather than sharing one
+   * box: the overview needs the full grid of cards, media is the most compact
+   * of the four. `dashboard.css` maps a tab to the pair it uses. */
+  --cae-drawer-width-dashboard: var(--cae-notch-open-width);
+  --cae-drawer-height-dashboard: var(--cae-notch-open-height);
+  --cae-drawer-width-media: 780px;
+  --cae-drawer-height-media: 430px;
+  --cae-drawer-width-stats: 900px;
+  --cae-drawer-height-stats: 470px;
+  --cae-drawer-width-workspace: 1080px;
+  --cae-drawer-height-workspace: 470px;
+
+  /* Sidebar icon background: a rounded square on hover, in the notch's shape
+   * language, morphing into an M3 Expressive four-leaf clover when active.
+   * The clover path itself is generated in dock.js against the icon size. */
+  --cae-shape-square: var(--cae-rounding-medium);
+  --cae-shape-item: 36px;
+
+  /* State layer opacities (StateLayer.qml). */
+  --cae-state-hover: 0.08;
+  --cae-state-press: 0.1;
+
+  /* Typography — Google Sans Flex is not a web font; Roboto Flex stands in.
+   * Rubik and the Material Symbols Rounded icon face match the shell. */
+  --cae-font-body: 'Roboto Flex', 'Rubik', system-ui, sans-serif;
+  --cae-font-display: 'Rubik', 'Roboto Flex', system-ui, sans-serif;
+  --cae-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Font sizes (FontSizeTokens + FONT_STYLE defaults). */
+  --cae-font-size-small: 11px;
+  --cae-font-size-smaller: 12px;
+  --cae-font-size-normal: 13px;
+  --cae-font-size-larger: 15px;
+  --cae-font-size-large: 18px;
+  --cae-font-size-extra-large: 28px;
+}

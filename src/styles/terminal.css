@@ -1,0 +1,355 @@
+/* ============================================================
+   Terminal window — matrix loader, ASCII portrait, readout.
+   Drawn straight onto the window's glass, in the shell's own
+   scheme, so it follows light and dark with everything else.
+   ============================================================ */
+
+.window__body:has(.term-app) {
+  padding: 0;
+  overflow: auto;
+}
+
+/*
+ * The console rides the shell's own scheme: dark copy on the window's glass
+ * under a light theme, light copy under a dark one. It paints no surface of its
+ * own — the blurred window behind it is the background — so every rule below
+ * tints with transparency rather than laying down a slab.
+ */
+.term-app {
+  --term-ink: var(--md-sys-color-on-surface);
+  --term-dim: var(--md-sys-color-on-surface-variant);
+  --term-accent: var(--md-sys-color-primary);
+  --term-tail: var(--md-sys-color-tertiary);
+
+  --term-glow: color-mix(in srgb, var(--term-accent) 18%, transparent);
+  --term-hairline: color-mix(in srgb, var(--term-accent) 30%, transparent);
+  --term-rule: color-mix(in srgb, var(--term-ink) 16%, transparent);
+
+  position: relative;
+  display: grid;
+  align-content: safe center;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--term-ink);
+  /* Terminal type throughout — fields, tags and the prompt button included. */
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-normal);
+  line-height: 1.55;
+}
+
+/* ---------------- Act one: matrix loader ---------------- */
+
+.term-boot {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: end;
+  transition:
+    opacity var(--cae-duration-slow-effects) var(--cae-ease-standard),
+    transform var(--cae-duration-default-spatial) var(--cae-ease-emphasized-accel);
+}
+
+.term-boot.is-done {
+  opacity: 0;
+  transform: scale(1.06);
+}
+
+.term-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.term-boot__log {
+  position: relative;
+  display: grid;
+  gap: var(--cae-spacing-extra-small);
+  padding: var(--cae-spacing-extra-large);
+}
+
+.term-boot__line {
+  display: flex;
+  gap: var(--cae-spacing-small);
+  align-items: baseline;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(6px);
+  color: var(--term-dim);
+  font-size: var(--cae-font-size-smaller);
+}
+
+.term-boot__line.is-live {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-standard-decel),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.term-boot__caret {
+  color: var(--term-accent);
+}
+
+/* ---------------- Act two: the readout ---------------- */
+
+.term-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--cae-spacing-large-increased);
+  align-content: start;
+  padding: var(--cae-spacing-extra-large);
+  opacity: 0;
+}
+
+.term-app.is-booted .term-shell {
+  opacity: 1;
+  transition: opacity var(--cae-duration-default-effects) var(--cae-ease-standard-decel);
+}
+
+.term-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cae-spacing-small);
+  margin: 0;
+  font-size: var(--cae-font-size-smaller);
+}
+
+.term-prompt__user {
+  color: var(--term-accent);
+}
+
+.term-prompt__path {
+  color: var(--term-dim);
+}
+
+.term-prompt__cmd {
+  color: var(--term-ink);
+}
+
+.term-columns {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--cae-spacing-extra-large);
+  align-items: start;
+}
+
+/* --- Portrait as characters --- */
+
+.term-ascii {
+  display: grid;
+  margin: 0;
+  padding: var(--cae-spacing-medium);
+  border: 1px solid var(--term-hairline);
+  border-radius: var(--cae-rounding-medium);
+  background: transparent;
+  color: var(--term-accent);
+  font-family: var(--cae-font-mono);
+  font-size: clamp(6px, 0.62vw, 9px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: pre;
+  text-shadow: 0 0 6px var(--term-glow);
+}
+
+.term-ascii__row {
+  display: block;
+  opacity: 0;
+  transform: translateY(-4px);
+  animation: term-row var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial) forwards;
+  animation-delay: calc(var(--row) * 22ms);
+}
+
+@keyframes term-row {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Identity fields --- */
+
+.term-readout {
+  display: grid;
+  gap: var(--cae-spacing-medium);
+  align-content: start;
+  min-width: 0;
+}
+
+.term-field {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--cae-spacing-medium);
+  align-items: baseline;
+  padding-bottom: var(--cae-spacing-small);
+  border-bottom: 1px dashed var(--term-rule);
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.term-field.is-live {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-standard-decel),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.term-field__key {
+  color: var(--term-accent);
+  font-size: var(--cae-font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.term-field__key::before {
+  content: '--';
+  margin-right: 0.4ch;
+  opacity: 0.5;
+}
+
+.term-field__value {
+  min-height: 1.55em;
+  color: var(--term-ink);
+  overflow-wrap: anywhere;
+}
+
+.term-field--list {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.term-interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cae-spacing-small);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.term-field--list.is-live ~ .term-interests li {
+  opacity: 1;
+  transform: none;
+}
+
+.term-interests li {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--term-accent) 34%, transparent);
+  border-radius: var(--cae-rounding-full);
+  color: var(--term-dim);
+  font-size: var(--cae-font-size-small);
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-standard-decel),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+  transition-delay: calc(var(--tag) * 60ms);
+}
+
+.term-interests li::before {
+  content: '#';
+  margin-right: 0.3ch;
+  color: var(--term-accent);
+}
+
+/* ---------------- Act three: the collaboration prompt ---------------- */
+
+.term-cta {
+  display: inline-flex;
+  gap: var(--cae-spacing-small);
+  align-items: center;
+  justify-self: start;
+  padding: var(--cae-spacing-medium) var(--cae-spacing-large-increased);
+  border: 1px solid var(--term-accent);
+  border-radius: var(--cae-rounding-small);
+  background: color-mix(in srgb, var(--term-accent) 10%, transparent);
+  color: var(--term-ink);
+  font-family: var(--cae-font-mono);
+  font-size: var(--cae-font-size-normal);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(10px) scale(0.94);
+  transition:
+    opacity var(--cae-duration-default-effects) var(--cae-ease-standard-decel),
+    transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    background-color var(--cae-duration-fast-effects) var(--cae-ease-standard);
+}
+
+.term-cta.is-live {
+  opacity: 1;
+  transform: none;
+}
+
+.term-cta:hover,
+.term-cta:focus-visible {
+  background: color-mix(in srgb, var(--term-accent) 24%, transparent);
+}
+
+.term-cta:active {
+  transform: scale(0.97);
+}
+
+.term-cta__sigil {
+  color: var(--term-accent);
+}
+
+.term-cta__cmd {
+  color: var(--term-accent);
+}
+
+.term-cta__label {
+  color: var(--term-dim);
+}
+
+.term-cta__label::before {
+  content: '# ';
+}
+
+.term-cta__caret {
+  width: 8px;
+  height: 1.1em;
+  background: var(--term-accent);
+  animation: term-blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes term-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ---------------- Narrow tiles ---------------- */
+
+@media (max-width: 767px) {
+  .term-columns {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .term-shell,
+  .term-boot__log {
+    padding: var(--cae-spacing-large);
+  }
+
+  .term-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cae-spacing-extra-small);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term-ascii__row,
+  .term-cta__caret {
+    animation: none;
+  }
+
+  .term-ascii__row {
+    opacity: 1;
+    transform: none;
+  }
+}

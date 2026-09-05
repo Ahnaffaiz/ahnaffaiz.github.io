@@ -1,0 +1,1547 @@
+/* Dashboard tabs: cards, calendar, weather, player, meters, workflow.
+ * Colours come only from `--md-sys-color-*`, shape and motion only from
+ * `--cae-*`, per CLAUDE.md. */
+
+/* ---------------- Shared card language ---------------- */
+
+.dash-card,
+.tile-surface {
+  position: relative;
+  padding: var(--cae-spacing-medium) var(--cae-spacing-large);
+  border-radius: var(--cae-rounding-extra-large);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 55%, transparent);
+  overflow: hidden;
+}
+
+.dash-card__label {
+  display: block;
+  font-size: var(--cae-font-size-small);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.dash-name {
+  margin-top: 6px;
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+
+.dash-strong {
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.dash-muted {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--cae-font-size-smaller);
+}
+
+/* Cards arrive in sequence whenever the tab is shown. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+
+[data-panel] [data-card] {
+  animation: card-in var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial) backwards;
+}
+
+.dash > [data-card]:nth-child(1) { animation-delay: 0ms; }
+.dash > [data-card]:nth-child(2) { animation-delay: 60ms; }
+.dash > [data-card]:nth-child(3) { animation-delay: 120ms; }
+.dash > [data-card]:nth-child(4) { animation-delay: 180ms; }
+.dash > [data-card]:nth-child(5) { animation-delay: 240ms; }
+.dash > [data-card]:nth-child(6) { animation-delay: 300ms; }
+
+/* ---------------- Dashboard tab ---------------- */
+
+/* Material 3 card group: one family of surfaces, sharing a shape scale. The
+ * outer corners of the group stay large, the corners that meet inside it
+ * tighten, so the whole reads as one object rather than scattered tiles. */
+.card-group {
+  display: grid;
+  gap: var(--cae-spacing-small);
+}
+
+.card-group > .dash-card {
+  border-radius: var(--cae-rounding-medium);
+}
+
+.dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.3fr);
+  gap: var(--cae-spacing-small);
+  height: 100%;
+}
+
+/* The wireframe: identity and status across the top, then clock / calendar /
+ * weather, then the toolkit along the bottom. */
+.dash__main {
+  grid-template-columns: 0.85fr 1.9fr 0.75fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.dash-card--me {
+  grid-area: 1 / 1 / 2 / 3;
+  border-top-left-radius: var(--cae-rounding-extra-large);
+}
+
+.dash-card--status {
+  grid-area: 1 / 3 / 2 / 4;
+  border-top-right-radius: var(--cae-rounding-extra-large);
+}
+
+.dash-card--clock {
+  grid-area: 2 / 1 / 3 / 2;
+}
+
+.dash-card--calendar {
+  grid-area: 2 / 2 / 3 / 3;
+}
+
+.dash-card--weather {
+  grid-area: 2 / 3 / 3 / 4;
+}
+
+.dash-card--tools {
+  grid-area: 3 / 1 / 4 / 4;
+  border-bottom-left-radius: var(--cae-rounding-extra-large);
+  border-bottom-right-radius: var(--cae-rounding-extra-large);
+}
+
+.dash-card--player {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  border-radius: var(--cae-rounding-extra-large);
+}
+
+/* Clock */
+
+/* Hours over minutes rather than `08:12` on one line: stacked, each half can
+ * be set far larger in the same width. */
+.clock__time {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--cae-font-display);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 0.92;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.clock__unit:last-child {
+  color: var(--md-sys-color-primary);
+}
+
+.clock__date {
+  margin-top: var(--cae-spacing-small);
+  line-height: 1.35;
+}
+
+.dash-card--clock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Calendar */
+
+.dash-card--calendar {
+  display: flex;
+  flex-direction: column;
+}
+
+.cal__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.cal__month {
+  flex: 1;
+  text-align: center;
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-normal);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--cae-rounding-full);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+  transform: scale(1.12);
+}
+
+.icon-btn:active {
+  transform: scale(0.9);
+}
+
+.icon-btn .material-symbols-rounded {
+  font-size: 19px;
+}
+
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal__grid--head {
+  margin-top: var(--cae-spacing-small);
+}
+
+.cal__grid:not(.cal__grid--head) {
+  flex: 1;
+  align-content: stretch;
+}
+
+.cal__weekday {
+  font-size: var(--cae-font-size-small);
+  font-weight: 500;
+  text-align: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.cal__day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 26px;
+  border-radius: var(--cae-rounding-full);
+  font-size: var(--cae-font-size-smaller);
+  font-variant-numeric: tabular-nums;
+  color: var(--md-sys-color-on-surface);
+  animation: card-in var(--cae-duration-normal) var(--cae-ease-fast-spatial) backwards;
+  animation-delay: calc(var(--i) * 6ms);
+}
+
+.cal__day--empty {
+  animation: none;
+}
+
+.cal__num {
+  position: relative;
+  z-index: 1;
+}
+
+/* Today's marker is a four-lobed cookie that turns as the card is hovered. */
+/* Sized to sit inside the cell with room to spare — the card clips its own
+ * overflow, so a marker any larger than the row loses its lobes. */
+.cal__today-shape {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  background: var(--md-sys-color-primary);
+  transition: rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+}
+
+/* Turning only — growing it is what pushed the lobes past the cell. */
+.dash-card--calendar:hover .cal__today-shape {
+  rotate: 180deg;
+}
+
+.cal__day--today {
+  color: var(--md-sys-color-on-primary);
+  font-weight: 600;
+}
+
+/* Who */
+
+.role-list {
+  margin-top: var(--cae-spacing-small);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--cae-spacing-large);
+}
+
+.role-list__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--cae-font-size-smaller);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.role-list__item .material-symbols-rounded {
+  font-size: 15px;
+  color: var(--md-sys-color-primary);
+}
+
+/* Weather */
+
+.sky {
+  position: relative;
+  height: 62px;
+  margin: var(--cae-spacing-small) 0;
+}
+
+.sky__sun,
+.sky__cloud,
+.sky__rain {
+  position: absolute;
+  transition:
+    opacity var(--cae-duration-slow-effects) var(--cae-ease-standard),
+    transform var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+}
+
+/* A warm disc with a slow halo, and rays that turn behind it. */
+.sky__sun {
+  top: 6px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-tertiary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--md-sys-color-tertiary) 20%, transparent);
+  animation: sun-breathe 4.5s var(--cae-ease-standard) infinite;
+}
+
+.sky__sun::before {
+  content: '';
+  position: absolute;
+  inset: -11px;
+  border-radius: var(--cae-rounding-full);
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary) 45%, transparent) 0 6%,
+    transparent 6% 25%,
+    color-mix(in srgb, var(--md-sys-color-tertiary) 45%, transparent) 25% 31%,
+    transparent 31% 50%,
+    color-mix(in srgb, var(--md-sys-color-tertiary) 45%, transparent) 50% 56%,
+    transparent 56% 75%,
+    color-mix(in srgb, var(--md-sys-color-tertiary) 45%, transparent) 75% 81%,
+    transparent 81%
+  );
+  mask: radial-gradient(circle, transparent 13px, #000 14px);
+  animation: spin 18s linear infinite;
+}
+
+@keyframes sun-breathe {
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--md-sys-color-tertiary) 10%, transparent);
+  }
+}
+
+.sky__cloud {
+  height: 12px;
+  border-radius: var(--cae-rounding-full);
+  background: currentColor;
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.3;
+}
+
+.sky__cloud::before,
+.sky__cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  border-radius: var(--cae-rounding-full);
+  background: currentColor;
+}
+
+.sky__cloud::before {
+  left: 20%;
+  width: 17px;
+  height: 17px;
+}
+
+.sky__cloud::after {
+  left: 46%;
+  width: 22px;
+  height: 22px;
+}
+
+.sky__cloud--a {
+  top: 16px;
+  left: 26px;
+  width: 46px;
+  animation: drift 9s linear infinite;
+}
+
+.sky__cloud--b {
+  top: 36px;
+  left: 8px;
+  width: 34px;
+  opacity: 0.18;
+  animation: drift 13s linear infinite reverse;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(14px);
+  }
+}
+
+.sky__rain {
+  top: 44px;
+  left: 18px;
+  width: 44px;
+  height: 16px;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(
+      70deg,
+      var(--md-sys-color-primary) 0 2px,
+      transparent 2px 11px
+    );
+  mask-image: linear-gradient(#000 0 60%, transparent);
+  animation: rainfall 0.9s linear infinite;
+}
+
+@keyframes rainfall {
+  to {
+    background-position: -11px 16px;
+  }
+}
+
+.sky[data-sky='cloud'] .sky__sun {
+  transform: translate(10px, -6px) scale(0.66);
+  opacity: 0.55;
+}
+
+.sky[data-sky='rain'] .sky__sun {
+  transform: translate(12px, -14px) scale(0.5);
+  opacity: 0.3;
+}
+
+.sky[data-sky='rain'] .sky__rain {
+  opacity: 0.75;
+}
+
+.sky[data-sky='sun'] .sky__cloud {
+  opacity: 0.1;
+  transform: translate(10px, 4px) scale(0.85);
+}
+
+.sky[data-sky='sun'] .sky__sun::before,
+.sky[data-sky='cloud'] .sky__sun::before {
+  opacity: 1;
+}
+
+.sky[data-sky='rain'] .sky__sun::before {
+  opacity: 0;
+}
+
+.weather__temp {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--cae-font-display);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.05;
+}
+
+.weather__temp i {
+  font-style: normal;
+  font-size: var(--cae-font-size-normal);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.weather__place {
+  margin-top: auto;
+}
+
+.dash-card--weather {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status */
+
+.status-dot {
+  position: absolute;
+  top: var(--cae-spacing-large);
+  right: var(--cae-spacing-large);
+  width: 10px;
+  height: 10px;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-primary);
+  animation: pulse 2.4s var(--cae-ease-standard) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* Tool kits */
+
+.tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--cae-spacing-small);
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 11px 3px 3px;
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+  font-size: var(--cae-font-size-small);
+  white-space: nowrap;
+  animation: card-in var(--cae-duration-normal) var(--cae-ease-fast-spatial) backwards;
+  animation-delay: calc(240ms + var(--i) * 45ms);
+  transition: transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.tool:hover {
+  transform: translateY(-3px);
+  background: var(--md-sys-color-secondary-container);
+}
+
+/* The marks are monochrome: each one inherits this colour, so the row reads as
+ * one family on the scheme rather than nine competing brand palettes. */
+.tool__logo {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.tool:hover .tool__logo {
+  color: var(--md-sys-color-primary);
+}
+
+.tool__logo .logo {
+  width: 16px;
+  height: 16px;
+}
+
+/* Player */
+
+.cat {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  transition: transform var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+}
+
+.cat[data-playing='true'] {
+  transform: scale(1.06);
+}
+
+.cat svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: var(--cae-spacing-small);
+  padding: 9px 16px;
+  border: none;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font: inherit;
+  font-size: var(--cae-font-size-smaller);
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.pill-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+}
+
+.pill-btn .material-symbols-rounded {
+  font-size: 18px;
+}
+
+/* ---------------- Media tab ---------------- */
+
+/* Two columns that fill the panel: the record on the left, everything you can
+ * act on down the right. Both stretch, so the tab never leaves dead glass. */
+.media {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(0, 1.25fr);
+  align-items: center;
+  gap: var(--cae-spacing-extra-large);
+  height: 100%;
+}
+
+.media__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.media__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The record. Art, grooves, a turning gloss and a spindle hole — it spins only
+ * while the track runs, and coasts to a stop rather than snapping back. */
+.disc {
+  position: relative;
+  width: 62%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  /* `dashboard/media.js` clips this to a circle that grows twelve lobes while
+   * the track plays; the radius is the fallback before that path is cut. */
+  border-radius: var(--cae-rounding-full);
+  transition: clip-path var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+  background: var(--md-sys-color-surface-container-highest);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 14%, transparent);
+  animation: spin 14s linear infinite paused;
+}
+
+.disc[data-playing='true'] {
+  animation-play-state: running;
+}
+
+.disc__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Pressed grooves, drawn over the art rather than baked into it. */
+.disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    transparent 0 4px,
+    color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent) 4px 5px
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* One highlight sweeping the opposite way to the spin, so the surface reads
+ * as lacquer catching the light instead of a flat picture turning. */
+.disc__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 10%,
+    color-mix(in srgb, var(--md-sys-color-surface-bright) 46%, transparent) 17%,
+    transparent 25% 58%,
+    color-mix(in srgb, var(--md-sys-color-surface-bright) 30%, transparent) 68%,
+    transparent 76%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+  animation: spin 7s linear infinite reverse paused;
+}
+
+.disc[data-playing='true'] .disc__sheen {
+  animation-play-state: running;
+}
+
+.disc__hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 17%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-surface-container-lowest);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 18%, transparent);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.media__side {
+  min-width: 0;
+}
+
+.media__title {
+  margin-top: 6px;
+  font-family: var(--cae-font-display);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.media__album {
+  margin-top: 2px;
+}
+
+/* ---------------- Wave timeline ---------------- */
+
+/* Material 3's expressive progress indicator: the played stretch is a wave, the
+ * rest a straight line, with a gap between them and a stop dot at the end.
+ * `shell/wavebar.js` draws the geometry; this only colours it. */
+.wave {
+  margin-top: var(--cae-spacing-large);
+}
+
+.wave__bar {
+  position: relative;
+  height: 22px;
+  border-radius: var(--cae-rounding-small);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.wave__bar:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 4px;
+}
+
+.wave__svg {
+  display: block;
+  overflow: visible;
+}
+
+.wave__active {
+  stroke: var(--md-sys-color-primary);
+}
+
+.wave__rest {
+  stroke: color-mix(in srgb, var(--md-sys-color-primary) 26%, transparent);
+}
+
+.wave__stop {
+  fill: var(--md-sys-color-primary);
+}
+
+.wave__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: var(--cae-font-size-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------------- Transport ---------------- */
+
+.media__transport {
+  display: flex;
+  align-items: center;
+  gap: var(--cae-spacing-medium);
+  margin-top: var(--cae-spacing-large);
+}
+
+/* The shape is fixed: hovering scales the key and nothing else, so nothing is
+ * left mid-morph when the pointer moves on. The swing on press is animated in
+ * `dashboard/media.js` against `translate`, which composes with this scale. */
+.fab-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: var(--cae-rounding-large);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  cursor: pointer;
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.fab-btn:hover {
+  transform: scale(1.09);
+}
+
+.fab-btn:active {
+  transform: scale(0.92);
+}
+
+.fab-btn--primary {
+  width: 58px;
+  height: 58px;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.fab-btn .material-symbols-rounded {
+  font-size: 24px;
+}
+
+/* ---------------- Equalizer toggle ---------------- */
+
+/* The desktop-meter control is a switch: a shaped thumb rides the track from
+ * one end to the other, turning a half-turn on the way and unwinding on the way
+ * back, and the track takes the accent once the thumb lands. No pill around the
+ * whole control any more — the switch and its label are the whole width. */
+.eq-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cae-spacing-small);
+  margin-top: var(--cae-spacing-large);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font: inherit;
+  font-size: var(--cae-font-size-smaller);
+  cursor: pointer;
+  transition: color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.eq-btn[aria-checked='true'] {
+  color: var(--md-sys-color-on-surface);
+}
+
+.eq-btn:focus-visible {
+  outline: none;
+}
+
+.eq-btn:focus-visible .eq-btn__track {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* The track. Off it carries the surface's own disabled tone and a visible
+ * outline; on, it fills with the accent and the outline melts into it. */
+.eq-btn__track {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--md-sys-color-outline-variant);
+  transition:
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard),
+    box-shadow var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.eq-btn[aria-checked='true'] .eq-btn__track {
+  background: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+}
+
+.eq-btn:hover .eq-btn__track {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 16%, transparent);
+}
+
+.eq-btn[aria-checked='true']:hover .eq-btn__track {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-surface));
+}
+
+/* The thumb. It sits 4px in from the left cap and travels the track's clear
+ * width — 52 less its own 24 less the two 4px insets — and it is small at rest,
+ * growing to fill the cap as it lands, the way the M3 switch does.
+ *
+ * Both the travel and the growth run on the fast spatial curve, which is the
+ * expressive set's hardest overshoot: the thumb throws itself at the far cap,
+ * passes it, and rocks back. */
+.eq-btn__mark {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  scale: 0.72;
+  transition:
+    translate var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial),
+    scale var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial);
+}
+
+.eq-btn[aria-checked='true'] .eq-btn__mark {
+  translate: 20px 0;
+  scale: 1;
+}
+
+/* Squashed under the finger, from whichever size it is currently sitting at. */
+.eq-btn:active .eq-btn__mark {
+  scale: 0.62;
+}
+
+.eq-btn[aria-checked='true']:active .eq-btn__mark {
+  scale: 0.88;
+}
+
+/* The thumb's face. Off it is a circle in the outline tone; on it grows four
+ * lobes and turns a half-turn as it crosses — both paths are sampled at the
+ * same 32 points in `shell/shapes.js`, so the clip interpolates rather than
+ * jumping, and the turn runs backwards on the way home. */
+.eq-btn__shape {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: var(--md-sys-color-outline);
+  transition:
+    clip-path var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial),
+    rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.eq-btn[aria-checked='true'] .eq-btn__shape {
+  background: var(--md-sys-color-on-primary);
+  rotate: 180deg;
+}
+
+/* The bars sit outside the rotating plate, so they stay upright through it. */
+.eq-btn__bars {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.eq-btn__bars i {
+  width: 3px;
+  height: 5px;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-surface-container-lowest);
+  transition:
+    height var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+/* Against the filled thumb the bars have to read the other way round. */
+.eq-btn[aria-checked='true'] .eq-btn__bars i {
+  background: var(--md-sys-color-primary);
+}
+
+.eq-btn__bars i:nth-child(2) {
+  height: 12px;
+}
+
+.eq-btn__bars i:nth-child(3) {
+  height: 8px;
+}
+
+.eq-btn[aria-pressed='true'] .eq-btn__bars i:nth-child(1) {
+  height: 10px;
+}
+
+.eq-btn[aria-pressed='true'] .eq-btn__bars i:nth-child(2) {
+  height: 5px;
+}
+
+.eq-btn[aria-pressed='true'] .eq-btn__bars i:nth-child(3) {
+  height: 11px;
+}
+
+/* ---------------- Stats tab ---------------- */
+
+.perf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cae-spacing-large);
+  height: 100%;
+}
+
+.perf__meters {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--cae-spacing-large);
+}
+
+.meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cae-spacing-small);
+  border-radius: var(--cae-rounding-extra-large);
+  outline: none;
+  animation: card-in var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial) backwards;
+  animation-delay: calc(var(--i) * 90ms);
+  transition: transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+/* The wave itself comes back on hover — that is driven from `dashboard/stats.js`,
+ * because it is canvas-free path geometry. Here the dial just leans in. */
+.meter:hover,
+.meter:focus-visible {
+  transform: scale(1.06);
+}
+
+.meter:focus-visible .meter__dial {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 4px;
+  border-radius: var(--cae-rounding-full);
+}
+
+.meter__dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* No rotation here: `stats.js` starts its arcs at twelve o'clock itself. */
+.meter__svg {
+  width: 118px;
+  height: 118px;
+  overflow: visible;
+}
+
+.meter__track {
+  stroke: color-mix(in srgb, var(--md-sys-color-on-surface) 9%, transparent);
+}
+
+.meter__readout {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--cae-font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.meter__readout b {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.meter__readout i {
+  font-style: normal;
+  font-size: var(--cae-font-size-smaller);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.meter__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--cae-font-size-smaller);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.meter__label .material-symbols-rounded {
+  font-size: 16px;
+  color: var(--md-sys-color-primary);
+}
+
+/* ---------------- Facts ---------------- */
+
+.fact-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cae-spacing-medium);
+}
+
+/* The figure leads and the icon supports it, so the card stacks: a small
+ * shaped mark, then the number at display size, then what it counts. */
+.fact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--cae-spacing-medium) var(--cae-spacing-large);
+  border-radius: var(--cae-rounding-large-increased);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 55%, transparent);
+  outline: none;
+  overflow: hidden;
+  animation: card-in var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial) backwards;
+  animation-delay: calc(300ms + var(--i) * 90ms);
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.fact:hover,
+.fact:focus-visible {
+  transform: translateY(-4px) scale(1.02);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 78%, transparent);
+}
+
+.fact:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Cut to an Expressive shape in `dashboard/stats.js` against its measured box. */
+.fact__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transition:
+    rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial),
+    scale var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.fact:hover .fact__mark,
+.fact:focus-visible .fact__mark {
+  rotate: 120deg;
+  scale: 1.12;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+/* The glyph sits inside a turning plate, so it turns back to stay upright. */
+.fact__mark .material-symbols-rounded {
+  font-size: 17px;
+  transition: rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+}
+
+.fact:hover .fact__mark .material-symbols-rounded,
+.fact:focus-visible .fact__mark .material-symbols-rounded {
+  rotate: -120deg;
+}
+
+/* Set well above the mark: the number is the point of the card. */
+.fact__value {
+  margin-top: var(--cae-spacing-small);
+  font-family: var(--cae-font-display);
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--md-sys-color-on-surface);
+}
+
+.fact__label {
+  display: block;
+  font-size: var(--cae-font-size-smaller);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.fact__detail {
+  display: block;
+  font-size: var(--cae-font-size-small);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.75;
+}
+
+/* ---------------- Workspace tab ---------------- */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.flow__title {
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-large);
+  font-weight: 600;
+  margin-bottom: var(--cae-spacing-medium);
+}
+
+/* The connectors are drawn on two overlays and the cards sit between them, so
+ * a link can pass behind one card and over the next. */
+.flow__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.flow__links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.flow__links--under {
+  z-index: 0;
+}
+
+.flow__links--over {
+  z-index: 2;
+}
+
+/* Three across, two down. The six cards still read as one Material 3 card
+ * group: only the four corners on the outside of the block stay large. */
+.flow__steps {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* `auto` rather than `1fr`: the cards take the height their content needs
+   * instead of being stretched to fill whatever the panel has spare. */
+  grid-template-rows: repeat(2, auto);
+  align-content: start;
+  /* The column gap is the canvas the connectors are drawn on: too narrow and a
+   * coil or a zigzag has no room to be one. Composed from the spacing scale. */
+  row-gap: var(--cae-spacing-large-increased);
+  column-gap: calc(var(--cae-spacing-extra-extra-large) + var(--cae-spacing-small));
+}
+
+.step {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cae-spacing-small);
+  padding: var(--cae-spacing-medium) var(--cae-spacing-large) var(--cae-spacing-large);
+  border-radius: var(--cae-rounding-small);
+  /* Barely there at rest, so the route weaving between them is what reads
+   * first; hovering brings the card forward. */
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 32%, transparent);
+  outline: none;
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.flow__steps .step:nth-child(1) {
+  border-start-start-radius: var(--cae-rounding-extra-large);
+}
+
+.flow__steps .step:nth-child(3) {
+  border-start-end-radius: var(--cae-rounding-extra-large);
+}
+
+.flow__steps .step:nth-child(4) {
+  border-end-start-radius: var(--cae-rounding-extra-large);
+}
+
+.flow__steps .step:nth-child(6) {
+  border-end-end-radius: var(--cae-rounding-extra-large);
+}
+
+.step:hover,
+.step:focus-visible {
+  transform: translateY(-4px);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 85%, transparent);
+}
+
+.step:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Cut to an Expressive shape in `dashboard/workspace.js` against its own box. */
+.step__mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transition:
+    rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial),
+    scale var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-standard),
+    color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.step:hover .step__mark,
+.step:focus-visible .step__mark {
+  rotate: 135deg;
+  scale: 1.14;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+/* The glyph rides a turning plate, so it turns back to stay upright. */
+.step__icon {
+  display: grid;
+  place-items: center;
+  transition: rotate var(--cae-duration-slow-spatial) var(--cae-ease-fast-spatial);
+}
+
+.step:hover .step__icon,
+.step:focus-visible .step__icon {
+  rotate: -135deg;
+}
+
+.step__mark .material-symbols-rounded {
+  font-size: 30px;
+}
+
+/* No plate behind it: the numeral itself is the marker, set large and quiet so
+ * it reads as a tally in the corner rather than a badge competing with the icon. */
+.step__index {
+  position: absolute;
+  top: var(--cae-spacing-small);
+  right: var(--cae-spacing-medium);
+  font-family: var(--cae-font-display);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 34%, transparent);
+  transition: color var(--cae-duration-default-effects) var(--cae-ease-standard);
+}
+
+.step:hover .step__index,
+.step:focus-visible .step__index {
+  color: var(--md-sys-color-primary);
+}
+
+.step__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cae-spacing-extra-small);
+  min-width: 0;
+}
+
+.step__name {
+  display: block;
+  font-size: var(--cae-font-size-normal);
+  font-weight: 600;
+}
+
+.step__detail {
+  display: block;
+  font-size: var(--cae-font-size-smaller);
+  line-height: 1.4;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* The route between the cards. Dashes crawl along each link so the whole run
+ * reads as moving in one direction; the arrowheads stay solid. */
+.flow__link {
+  stroke: color-mix(in srgb, var(--md-sys-color-primary) 62%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 7 6;
+  animation: link-flow 1.1s linear infinite;
+}
+
+.flow__head {
+  stroke: color-mix(in srgb, var(--md-sys-color-primary) 78%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* While a link is unspooling, the crawl is switched off — `workspace.js` owns
+ * the dash offset for that stretch and the two would fight over it. */
+.flow__link--drawing {
+  animation: none;
+}
+
+@keyframes link-flow {
+  to {
+    stroke-dashoffset: -13;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow__link {
+    animation: none;
+  }
+}
+
+/* ---------------- Desktop equalizer ---------------- */
+
+/* A strip the full width of the screen, standing on its bottom edge — over the
+ * wallpaper, under every window. Columns only: no timeline, no title. */
+.desk-meter {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 12%;
+  transition:
+    opacity var(--cae-duration-default-effects) var(--cae-ease-standard),
+    translate var(--cae-duration-default-spatial) var(--cae-ease-fast-spatial);
+}
+
+.desk-meter[data-on='true'] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.desk-meter__canvas {
+  display: block;
+  width: 100%;
+  height: 104px;
+}
+
+/* ---------------- Small screens ---------------- */
+
+@media (max-width: 900px) {
+  /* The player drops below the group, and the group loses its third column. */
+  .dash {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .dash__main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+
+  .dash-card--me,
+  .dash-card--status,
+  .dash-card--clock,
+  .dash-card--calendar,
+  .dash-card--weather,
+  .dash-card--tools {
+    grid-area: auto;
+  }
+
+  .dash-card--calendar,
+  .dash-card--tools {
+    grid-column: span 2;
+  }
+
+  .dash-card--player {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--cae-spacing-large);
+  }
+
+  .cat {
+    min-height: 110px;
+    max-width: 150px;
+  }
+
+  .media {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--cae-spacing-large);
+    height: auto;
+  }
+
+  .media__stage {
+    width: min(220px, 100%);
+  }
+
+  .media__side {
+    width: 100%;
+  }
+
+  /* One column on a narrow screen. The connectors are measured off a two-row
+   * grid, so they are hidden rather than left pointing at nothing. */
+  .flow__steps {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: var(--cae-spacing-small);
+    height: auto;
+  }
+
+  .flow__stage {
+    flex: none;
+  }
+
+  .flow__links {
+    display: none;
+  }
+
+  .flow__steps .step:first-child {
+    border-radius: var(--cae-rounding-extra-large) var(--cae-rounding-extra-large)
+      var(--cae-rounding-small) var(--cae-rounding-small);
+  }
+
+  .flow__steps .step:last-child {
+    border-radius: var(--cae-rounding-small) var(--cae-rounding-small)
+      var(--cae-rounding-extra-large) var(--cae-rounding-extra-large);
+  }
+
+  .fact-list {
+    grid-template-columns: 1fr;
+  }
+
+  .perf__meters {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    /* A narrow screen cannot spare 40px of fillet on each side. */
+    --cae-notch-open-fillet: 18px;
+    --cae-notch-open-height: min(560px, 74dvh);
+  }
+
+  .dash__main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dash-card--calendar,
+  .dash-card--tools {
+    grid-column: auto;
+  }
+
+  .dash-card--player {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cat {
+    min-height: 130px;
+    max-width: none;
+  }
+
+  .clock__time {
+    font-size: 46px;
+  }
+
+  .media__transport {
+    flex-wrap: wrap;
+  }
+
+  .desk-meter__canvas {
+    height: 64px;
+  }
+}

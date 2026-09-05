@@ -1,0 +1,590 @@
+/* Desktop-shell layout modelled on caelestia-shell: one translucent slab with
+ * a single screen-shaped hole cut out of it. The notch is not a component on
+ * top of the bezel — it is where that hole is missing, so the two are the same
+ * surface and cannot seam. */
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--cae-font-body);
+  font-size: var(--cae-font-size-normal);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  overscroll-behavior: none;
+}
+
+.shell {
+  position: fixed;
+  inset: 0;
+  isolation: isolate;
+}
+
+/* ---------------- Wallpaper ---------------- */
+
+.wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--md-sys-color-surface-dim);
+  /* The flip transition turns a layer around its own vertical axis; the depth
+   * it turns through is declared here, once, and never animated. */
+  perspective: 1600px;
+  transition: filter var(--cae-duration-large) var(--cae-ease-standard);
+}
+
+/* The page turn itself is driven from `theme.js` through the Web Animations
+ * API — one of a set of slides, zooms and flips, picked at random per change.
+ * These are the resting states it starts and ends on, with no transition of
+ * their own: a stylesheet transition would fight the keyframes for the same
+ * two properties. */
+.wallpaper__layer {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  backface-visibility: hidden;
+  opacity: 0;
+}
+
+.wallpaper__layer[data-front='true'] {
+  opacity: 1;
+}
+
+/* The curtain transitions build one of these per change and throw it away
+ * again. Each slat carries its own slice of the incoming wallpaper, sized and
+ * offset in `theme.js`, and grows from nothing on a stagger — so the new image
+ * assembles itself out of blinds rather than a colour sweeping over it. */
+.wallpaper__slats {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.wallpaper__slat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  /* Scaled from zero every time, so it must not show before its turn. */
+  transform: scaleX(0);
+  will-change: transform;
+}
+
+/* The frame blurs the wallpaper behind it, so the sharp copy inside the screen
+ * is a second rendering of the same image, shifted back under the frame to stay
+ * aligned with the viewport. */
+.screen > .wallpaper {
+  top: calc(-1 * (var(--cae-frame-gap) + var(--cae-topbar-height)));
+  left: calc(-1 * (var(--cae-frame-gap) + var(--cae-bar-width)));
+  right: auto;
+  bottom: auto;
+  width: 100vw;
+  height: 100dvh;
+}
+
+/* ---------------- Frame ---------------- */
+
+/* Every surface that is "the bezel" shares one recipe — same tint, same blur —
+ * so a piece that leaves the frame still reads as the frame. */
+.frame,
+.drawer,
+.launcher__panel,
+.bar__flyout {
+  background: var(--cae-bezel-surface);
+  backdrop-filter: blur(var(--cae-bezel-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--cae-bezel-blur)) saturate(1.5);
+}
+
+/* The bezel is flat glass: no shadow of any kind, in or out. */
+.frame,
+.drawer,
+.launcher__panel,
+.bar__flyout {
+  box-shadow: none;
+}
+
+/* One element for the whole frame: one blur, one shadow, no seams. */
+.frame {
+  position: absolute;
+  inset: var(--cae-frame-gap);
+  z-index: 20;
+  border-radius: var(--cae-frame-radius);
+  pointer-events: none;
+}
+
+/* ---------------- Screen ---------------- */
+
+.screen {
+  position: absolute;
+  z-index: 25;
+  top: calc(var(--cae-frame-gap) + var(--cae-topbar-height));
+  right: calc(var(--cae-frame-gap) + var(--cae-side-bezel));
+  bottom: calc(var(--cae-frame-gap) + var(--cae-bottombar-height));
+  left: calc(var(--cae-frame-gap) + var(--cae-bar-width));
+  overflow: hidden;
+  border-radius: var(--cae-screen-radius);
+}
+
+/* Anything that must sit inside the notch is a sibling of the screen, laid out
+ * over the same box so it lines up with the hole. */
+.stage {
+  position: absolute;
+  z-index: 30;
+  top: calc(var(--cae-frame-gap) + var(--cae-topbar-height));
+  right: calc(var(--cae-frame-gap) + var(--cae-side-bezel));
+  bottom: calc(var(--cae-frame-gap) + var(--cae-bottombar-height));
+  left: calc(var(--cae-frame-gap) + var(--cae-bar-width));
+  overflow: hidden;
+  /* `clip` rather than `hidden`: the launcher's skirt hangs past the bottom
+   * edge, and a hidden box is still programmatically scrollable — focusing the
+   * search field would scroll the stage and lift the panel off the bezelle. */
+  overflow: clip;
+  pointer-events: none;
+}
+
+/* ---------------- Dashboard trigger ---------------- */
+
+/* No tab sits on the frame at rest: the whole top bezel is the handle. Sweeping
+ * the pointer to the top edge is what brings the dashboard down, so the target
+ * is the full width of the bezelle and nothing else. It sits above the frame
+ * and stops where the screen begins, so it never covers a window. */
+.notch-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 31;
+  width: 100%;
+  height: calc(var(--cae-frame-gap) + var(--cae-topbar-height));
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* The dashboard hangs off the frame's top edge, flush where it meets it and
+ * rounded where it hangs free. */
+.drawer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  border-bottom-left-radius: var(--corner);
+  border-bottom-right-radius: var(--corner);
+  pointer-events: auto;
+}
+
+/* A square of the same surface that carries the bezel past the panel's edge,
+ * so a piece that leaves the frame still reads as the frame. */
+.drawer::before,
+.drawer::after,
+.bar__flyout::before,
+.bar__flyout::after {
+  content: '';
+  position: absolute;
+  width: var(--fillet);
+  height: var(--fillet);
+  background: inherit;
+  backdrop-filter: blur(var(--cae-bezel-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--cae-bezel-blur)) saturate(1.5);
+  pointer-events: none;
+}
+
+/* Beside the dashboard the joint sweeps outward: a quarter disc is bitten out
+ * of the corner facing the screen, so the bezelle curves into the panel. */
+.drawer::before {
+  top: 0;
+  left: calc(-1 * var(--fillet));
+  mask-image: radial-gradient(circle var(--fillet) at 0 100%, transparent 98%, #000 100%);
+  -webkit-mask-image: radial-gradient(circle var(--fillet) at 0 100%, transparent 98%, #000 100%);
+}
+
+.drawer::after {
+  top: 0;
+  right: calc(-1 * var(--fillet));
+  mask-image: radial-gradient(circle var(--fillet) at 100% 100%, transparent 98%, #000 100%);
+  -webkit-mask-image: radial-gradient(circle var(--fillet) at 100% 100%, transparent 98%, #000 100%);
+}
+
+/* Reaching out of the dock, the join stays concave: a quarter disc is bitten
+ * out of the corner facing away from the bar. */
+.bar__flyout::before {
+  top: calc(-1 * var(--fillet));
+  left: 0;
+  mask-image: radial-gradient(circle var(--fillet) at 100% 0, transparent 98%, #000 100%);
+  -webkit-mask-image: radial-gradient(circle var(--fillet) at 100% 0, transparent 98%, #000 100%);
+}
+
+.bar__flyout::after {
+  bottom: calc(-1 * var(--fillet));
+  left: 0;
+  mask-image: radial-gradient(circle var(--fillet) at 100% 100%, transparent 98%, #000 100%);
+  -webkit-mask-image: radial-gradient(circle var(--fillet) at 100% 100%, transparent 98%, #000 100%);
+}
+
+/* ---------------- Sidebar ---------------- */
+
+/* The bar draws nothing: it sits on the frame and only lays out its icons. */
+.bar {
+  position: absolute;
+  z-index: 40;
+  top: calc(var(--cae-frame-gap) + var(--cae-topbar-height));
+  bottom: calc(var(--cae-frame-gap) + var(--cae-bottombar-height));
+  left: var(--cae-frame-gap);
+  width: var(--cae-bar-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--cae-spacing-medium) 0;
+  gap: var(--cae-spacing-small);
+}
+
+.bar__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cae-spacing-extra-small);
+}
+
+.bar__group--brand {
+  flex: 1;
+  justify-content: center;
+}
+
+.bar__logo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--cae-rounding-full);
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  transition:
+    transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    color var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+}
+
+.bar__logo:hover {
+  transform: scale(1.14) rotate(-6deg);
+}
+
+.bar__logo:active {
+  transform: scale(0.94);
+}
+
+.bar__logo svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/* Icons are bare at rest — no background, no shadow. */
+.bar__item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+}
+
+.bar__item > .material-symbols-rounded {
+  position: relative;
+  z-index: 1;
+  transition: transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.bar__item:hover > .material-symbols-rounded {
+  transform: scale(1.08);
+}
+
+.bar__item:active > .material-symbols-rounded {
+  transform: scale(0.9);
+}
+
+/* Two stacked layers behind the icon: a rounded square for hover and a
+ * four-leaf clover for the active window. They cross-fade while both spin, so
+ * neither shape has to deform into the other. The background alone is the
+ * indicator — there is no line beside it. */
+.bar__shape {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--cae-shape-square);
+  background: transparent;
+  transform: scale(0.6);
+  opacity: 0;
+  transition:
+    background-color var(--cae-duration-default-effects) var(--cae-ease-default-effects),
+    opacity var(--cae-duration-default-effects) var(--cae-ease-standard),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+/* The clover is generated against the icon size in dock.js. */
+.bar__shape--leaf {
+  border-radius: 0;
+  clip-path: var(--cae-shape-clover, none);
+}
+
+.bar__item:hover .bar__shape {
+  background: var(--md-sys-color-secondary-container);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bar__item[data-open='true'] {
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* Active: the clover takes over and the square steps back. */
+.bar__item[data-open='true'] .bar__shape--leaf {
+  background: var(--md-sys-color-primary-container);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bar__item[data-open='true'] .bar__shape:not(.bar__shape--leaf) {
+  opacity: 0;
+}
+
+/* Minimized: the window left the screen exactly as a closed one does, so the
+ * dock is where the two are told apart — a short line beside the icon says the
+ * window is parked here rather than gone. */
+.bar__item[data-minimized='true']::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 3px;
+  height: 13px;
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-primary);
+  transform: translateY(-50%) scaleY(0);
+  animation: dock-parked var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial) forwards;
+}
+
+@keyframes dock-parked {
+  to {
+    transform: translateY(-50%) scaleY(1);
+  }
+}
+
+/* Label flyout: the bezel itself reaching out of the dock to hold the hovered
+ * label — same tint, blur and shadow as the frame, joined by a fillet above
+ * and below. It glides between icons rather than fading, so moving down the
+ * dock reads as one continuous surface. */
+.bar__flyout {
+  --fillet: var(--cae-notch-fillet);
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 var(--cae-spacing-large) 0 var(--cae-spacing-medium);
+  border: none;
+  border-top-right-radius: var(--cae-notch-corner);
+  border-bottom-right-radius: var(--cae-notch-corner);
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--cae-font-size-normal);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+  /* Wiped open with clip-path rather than scaleX, so the label never stretches
+   * while the surface grows. The vertical insets are negative so the fillets,
+   * which sit outside the border box, are wiped along with it. */
+  clip-path: inset(-40px 100% -40px 0);
+  opacity: 0;
+  transition:
+    top var(--cae-duration-default-spatial) var(--cae-ease-default-spatial),
+    clip-path var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-fast-effects);
+}
+
+.bar__flyout[data-open='true'] {
+  /* Negative on three sides so the fillets and the shadow show; zero on the
+   * left so neither spills back across the dock and marks the seam. */
+  clip-path: inset(-40px -40px -40px 0);
+  opacity: 1;
+}
+
+.bar__brand {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-smaller);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--md-sys-color-on-surface-variant);
+  user-select: none;
+}
+
+.bar__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--cae-font-display);
+  font-size: var(--cae-font-size-smaller);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: var(--md-sys-color-on-surface-variant);
+  user-select: none;
+}
+
+.bar__divider {
+  width: 18px;
+  height: 1px;
+  background: var(--cae-bezel-hairline);
+  margin: var(--cae-spacing-extra-small) 0;
+}
+
+/* ---------------- Dashboard drawer ---------------- */
+
+/* The dashboard is the notch grown up: same surface, same anchor, sized
+ * against the screen so it never outgrows the frame's rounded corners. */
+.drawer {
+  --corner: var(--cae-notch-open-corner);
+  --fillet: var(--cae-notch-open-fillet);
+  /* Set per tab, below: the panel is only ever as big as its content needs. */
+  --panel-width: var(--cae-notch-open-width);
+  --panel-height: var(--cae-notch-open-height);
+  z-index: 32;
+  flex-direction: column;
+  width: min(
+    var(--panel-width),
+    calc(100% - 2 * (var(--cae-screen-radius) + var(--fillet) + 8px))
+  );
+  height: min(var(--panel-height), 100%);
+  overflow: hidden;
+  /* Slides down out of the bezel; the stage's clip is what makes it read as
+   * unrolling from the top edge rather than fading in place. */
+  transform: translateX(-50%) translateY(-100%);
+  pointer-events: none;
+  /* Only the slide is transitioned. The box itself resizes in one step: width
+   * and height are layout properties on a heavy backdrop blur, and a `min()`
+   * fed by a custom property does not interpolate reliably anyway. The panel's
+   * cards animate themselves in, which is what carries the change. */
+  transition: transform var(--cae-duration-default-spatial) var(--cae-ease-emphasized-decel);
+}
+
+/* Every tab brings its own footprint, so switching tabs resizes the panel
+ * around the content instead of leaving one of them swimming in empty glass. */
+.drawer[data-tab='dashboard'] {
+  --panel-width: var(--cae-drawer-width-dashboard);
+  --panel-height: var(--cae-drawer-height-dashboard);
+}
+
+.drawer[data-tab='media'] {
+  --panel-width: var(--cae-drawer-width-media);
+  --panel-height: var(--cae-drawer-height-media);
+}
+
+.drawer[data-tab='stats'] {
+  --panel-width: var(--cae-drawer-width-stats);
+  --panel-height: var(--cae-drawer-height-stats);
+}
+
+.drawer[data-tab='workspace'] {
+  --panel-width: var(--cae-drawer-width-workspace);
+  --panel-height: var(--cae-drawer-height-workspace);
+}
+
+.drawer[data-open='true'] {
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.drawer__tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--cae-spacing-extra-large-increased);
+  padding: var(--cae-spacing-small) var(--cae-spacing-large) 0;
+  border-bottom: 1px solid var(--cae-bezel-hairline);
+}
+
+.drawer__tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 18px 10px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--cae-font-size-smaller);
+  border-radius: var(--cae-rounding-small) var(--cae-rounding-small) 0 0;
+  cursor: pointer;
+  transition: color var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+}
+
+.drawer__tab:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+.drawer__tab[aria-selected='true'] {
+  color: var(--md-sys-color-primary);
+}
+
+.drawer__tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: var(--cae-dashboard-tab-indicator-height);
+  border-radius: var(--cae-rounding-full) var(--cae-rounding-full) 0 0;
+  background: var(--md-sys-color-primary);
+  transform: translateX(-50%);
+  transition: width var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.drawer__tab[aria-selected='true']::after {
+  width: calc(100% - 24px);
+}
+
+.drawer__viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* `clip` rather than `hidden` across the inline axis. A hidden box is still
+   * programmatically scrollable, so focusing anything inside a panel — the seek
+   * slider, a button — lets the browser scroll the whole carousel sideways and
+   * leaves two tabs showing at once. A clipped box cannot be scrolled at all.
+   * The `hidden` shorthand above stays as the fallback where `clip` is unknown;
+   * `shell/dashboard.js` pins the scroll back for that case. */
+  overflow-x: clip;
+}
+
+.drawer__track {
+  display: flex;
+  /* Bounded, so each panel scrolls inside the drawer instead of overflowing it. */
+  height: 100%;
+  transition: transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial);
+}
+
+.drawer__panel {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  padding: var(--cae-spacing-large);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}

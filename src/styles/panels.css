@@ -1,0 +1,630 @@
+/* Launcher, notifications, OSD sliders, session menu, ripple, small screens. */
+
+/* ---------------- Launcher ---------------- */
+
+/* The launcher is the dashboard upside down: the same bezel glass, anchored to
+ * the bottom bezelle and sliding up out of it. It is a child of the stage, so
+ * the screen's edge clips it while it travels. */
+/* The wrapper carries the travel and nothing else — no fill, no blur, so the
+ * glass inside it is not nested in a backdrop root. The panel meets the
+ * bezelle on a straight edge: no joint, no sweep, nothing bitten out of the
+ * corners — it simply stands on the bottom bar. */
+.launcher {
+  /* The slide overshoots, so the panel carries a skirt of its own glass below
+   * the bezelle line. The stage clips it; without it the bounce would lift the
+   * panel off the frame and flash a band of wallpaper under it. */
+  --overhang: 48px;
+  position: absolute;
+  bottom: calc(-1 * var(--overhang));
+  left: 50%;
+  z-index: 34;
+  width: min(
+    var(--cae-launcher-item-width),
+    calc(100% - 2 * (var(--cae-screen-radius) + 8px))
+  );
+  transform: translateX(-50%) translateY(calc(100% + var(--cae-bottombar-height)));
+  pointer-events: none;
+  will-change: transform;
+  transition: transform var(--cae-duration-slow-spatial) var(--cae-ease-default-spatial);
+}
+
+.launcher[data-open='true'] {
+  transform: translateX(-50%);
+}
+
+.launcher__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--overhang);
+  /* Flush where it meets the bezelle, rounded where it stands free. */
+  border-radius: var(--cae-notch-open-corner) var(--cae-notch-open-corner) 0 0;
+  pointer-events: none;
+}
+
+.launcher[data-open='true'] .launcher__panel {
+  pointer-events: auto;
+}
+
+.launcher__list {
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--cae-spacing-small);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.launcher__item {
+  display: flex;
+  align-items: center;
+  gap: var(--cae-spacing-medium);
+  width: 100%;
+  height: var(--cae-launcher-item-height);
+  padding: 0 var(--cae-spacing-medium);
+  border: none;
+  border-radius: var(--cae-rounding-medium);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--cae-duration-fast-effects) var(--cae-ease-fast-effects);
+}
+
+.launcher__item[data-active='true'],
+.launcher__item:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+.launcher__glyph {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--cae-rounding-small);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-primary);
+}
+
+.launcher__text {
+  min-width: 0;
+}
+
+.launcher__name {
+  font-size: var(--cae-font-size-larger);
+}
+
+.launcher__desc {
+  display: block;
+  font-size: var(--cae-font-size-smaller);
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Entry animation: the rows come up under the panel as it rises, each one a
+ * beat behind the last, with the glyph landing after its label. Fade and travel
+ * are separate animations on purpose — an overshooting curve on `opacity`
+ * clamps at 1 and reads as a flicker, so only the transforms bounce. Only ever
+ * on the open; typing re-renders the list without the stagger. */
+@keyframes launcher-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes launcher-row-in {
+  from {
+    transform: translateY(18px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes launcher-glyph-in {
+  from {
+    transform: scale(0.68);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes launcher-text-in {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* One stagger step, shared by all three so a row's parts stay a fixed beat
+ * apart. Clamped: past the tenth row the wait would outlast the panel's slide,
+ * and the tail of a long list would still be arriving after it had settled. */
+.launcher[data-animate='true'] .launcher__item {
+  --step: calc(min(var(--i), 9) * 34ms);
+}
+
+.launcher[data-animate='true'] .launcher__item,
+.launcher[data-animate='true'] .launcher__glyph,
+.launcher[data-animate='true'] .launcher__text {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.launcher[data-animate='true'] .launcher__item {
+  animation:
+    launcher-fade-in var(--cae-duration-default-effects) var(--cae-ease-default-effects)
+      var(--step) forwards,
+    launcher-row-in var(--cae-duration-default-spatial) var(--cae-ease-default-spatial) var(--step)
+      forwards;
+}
+
+.launcher[data-animate='true'] .launcher__glyph {
+  animation:
+    launcher-fade-in var(--cae-duration-default-effects) var(--cae-ease-default-effects)
+      calc(var(--step) + 70ms) forwards,
+    launcher-glyph-in var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial)
+      calc(var(--step) + 70ms) forwards;
+}
+
+.launcher[data-animate='true'] .launcher__text {
+  animation:
+    launcher-fade-in var(--cae-duration-slow-effects) var(--cae-ease-default-effects)
+      calc(var(--step) + 45ms) forwards,
+    launcher-text-in var(--cae-duration-default-spatial) var(--cae-ease-slow-spatial)
+      calc(var(--step) + 45ms) forwards;
+}
+
+/* The stagger is over well before the panel finishes settling; drop the hint so
+ * the rows stop holding a compositor layer for the rest of the session. */
+.launcher:not([data-animate='true']) .launcher__item,
+.launcher:not([data-animate='true']) .launcher__glyph,
+.launcher:not([data-animate='true']) .launcher__text {
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher[data-animate='true'] .launcher__item,
+  .launcher[data-animate='true'] .launcher__glyph,
+  .launcher[data-animate='true'] .launcher__text {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+.launcher__search {
+  display: flex;
+  align-items: center;
+  gap: var(--cae-spacing-small);
+  padding: var(--cae-spacing-medium) var(--cae-spacing-large);
+  border-top: 1px solid var(--cae-bezel-hairline);
+}
+
+.launcher__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--cae-font-size-larger);
+  outline: none;
+}
+
+.launcher__search input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Clear: a plain icon button that is only there once there is something to
+ * clear, growing in rather than sitting on the bezel as a filled slab. */
+.launcher__clear {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: var(--cae-rounding-full);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-fast-effects),
+    background-color var(--cae-duration-fast-effects) var(--cae-ease-fast-effects);
+}
+
+.launcher__search[data-filled='true'] .launcher__clear {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.launcher__clear:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  color: var(--md-sys-color-on-surface);
+}
+
+.launcher__clear .material-symbols-rounded {
+  font-size: 20px;
+}
+
+/* ---------------- Notifications ---------------- */
+
+.notifs {
+  position: fixed;
+  top: calc(var(--cae-frame-gap) + var(--cae-topbar-height) + var(--cae-spacing-medium));
+  right: calc(var(--cae-frame-gap) + var(--cae-side-bezel) + var(--cae-spacing-medium));
+  z-index: 85;
+  width: min(var(--cae-notif-width), calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--cae-spacing-small);
+  pointer-events: none;
+}
+
+.notif {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cae-spacing-small);
+  padding: var(--cae-spacing-medium);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline) 28%, transparent);
+  border-radius: var(--cae-rounding-large-increased);
+  background: color-mix(
+    in srgb,
+    var(--md-sys-color-surface-container-high) 58%,
+    transparent
+  );
+  backdrop-filter: blur(var(--cae-window-blur)) saturate(1.35);
+  -webkit-backdrop-filter: blur(var(--cae-window-blur)) saturate(1.35);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent),
+    0 18px 48px color-mix(in srgb, var(--md-sys-color-shadow) 20%, transparent);
+  pointer-events: auto;
+  touch-action: none;
+  animation: notif-in var(--cae-duration-default-spatial) var(--cae-ease-default-spatial) both;
+}
+
+/* Exit runs through the Web Animations API in notifications.js. */
+.notif[data-dismissing='true'] {
+  pointer-events: none;
+}
+
+@keyframes notif-in {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notif__glyph {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 72%, transparent);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--md-sys-color-on-primary-container) 16%, transparent);
+}
+
+.notif__content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.notif__title {
+  font-size: var(--cae-font-size-normal);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.notif__body {
+  margin-top: var(--cae-spacing-extra-small);
+  font-size: var(--cae-font-size-normal);
+  font-weight: 400;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 82%, transparent);
+}
+
+.notif__actions {
+  display: flex;
+  gap: var(--cae-spacing-small);
+  margin-top: var(--cae-spacing-medium);
+}
+
+.notif .btn--tonal {
+  padding: 7px 14px;
+  background: color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, transparent);
+  font-size: var(--cae-font-size-normal);
+  font-weight: 400;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--md-sys-color-on-secondary-container) 10%, transparent);
+}
+
+.notif__dismiss {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline) 22%, transparent);
+  border-radius: var(--cae-rounding-full);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 48%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 82%, transparent);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial),
+    background-color var(--cae-duration-default-effects) var(--cae-ease-default-effects),
+    color var(--cae-duration-default-effects) var(--cae-ease-default-effects);
+}
+
+.notif__dismiss:hover {
+  transform: scale(1.05);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 72%, transparent);
+  color: var(--md-sys-color-on-surface);
+}
+
+.notif__dismiss:active {
+  transform: scale(0.94);
+}
+
+.notif__dismiss .material-symbols-rounded {
+  font-size: 22px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .notif {
+    background: var(--md-sys-color-surface-container-high);
+  }
+}
+
+/* ---------------- OSD (right edge) ---------------- */
+
+.osd {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  gap: var(--cae-spacing-medium);
+  padding: var(--cae-spacing-large) var(--cae-spacing-medium);
+  border-top-left-radius: var(--cae-rounding-extra-large);
+  border-bottom-left-radius: var(--cae-rounding-extra-large);
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-level2);
+  transform: translate(calc(100% - 10px), -50%);
+  transition: transform var(--cae-duration-default-spatial) var(--cae-ease-default-spatial);
+}
+
+.osd:hover,
+.osd:focus-within {
+  transform: translate(0, -50%);
+}
+
+.osd__slider {
+  position: relative;
+  width: var(--cae-osd-slider-width);
+  height: var(--cae-osd-slider-height);
+  border-radius: var(--cae-rounding-full);
+  background: var(--md-sys-color-surface-container-highest);
+  overflow: hidden;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.osd__fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: calc(var(--value, 50) * 1%);
+  background: var(--md-sys-color-primary);
+  transition: height var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.osd__glyph {
+  position: absolute;
+  inset: auto 0 8px 0;
+  display: grid;
+  place-items: center;
+  color: var(--md-sys-color-on-primary);
+  pointer-events: none;
+}
+
+/* ---------------- Session menu ---------------- */
+
+.menu {
+  position: fixed;
+  z-index: 88;
+  min-width: 172px;
+  padding: var(--cae-spacing-small);
+  border-radius: var(--cae-rounding-large);
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level3);
+  transform-origin: bottom left;
+  opacity: 0;
+  transform: scale(0.88);
+  pointer-events: none;
+  transition:
+    opacity var(--cae-duration-fast-effects) var(--cae-ease-fast-effects),
+    transform var(--cae-duration-fast-spatial) var(--cae-ease-fast-spatial);
+}
+
+.menu[data-open='true'] {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--cae-spacing-medium);
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--cae-rounding-small);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--cae-duration-fast-effects) var(--cae-ease-fast-effects);
+}
+
+.menu__item:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+/* ---------------- Ripple state layer ---------------- */
+
+.ripple {
+  position: absolute;
+  border-radius: var(--cae-rounding-full);
+  background: currentColor;
+  opacity: 0.1;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple var(--cae-duration-large) var(--cae-ease-standard) forwards;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* ---------------- Small screens ---------------- */
+
+@media (max-width: 767px) {
+  :root {
+    --cae-shape-item: 32px;
+    --cae-notch-width: 168px;
+    --cae-notch-height: 32px;
+    --cae-notch-fillet: 14px;
+    --cae-notch-corner: 14px;
+    --cae-notch-open-height: 300px;
+  }
+
+  /* The dock takes the bottom edge of the frame. */
+  .bar {
+    top: auto;
+    bottom: var(--cae-frame-gap);
+    left: var(--cae-frame-gap);
+    right: var(--cae-frame-gap);
+    width: auto;
+    height: 64px;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: 0;
+    padding: 0 var(--cae-spacing-extra-small) env(safe-area-inset-bottom);
+  }
+
+  .screen,
+  .stage {
+    left: var(--cae-frame-gap);
+    right: var(--cae-frame-gap);
+    bottom: calc(var(--cae-frame-gap) + 64px);
+  }
+
+  .screen > .wallpaper {
+    left: calc(-1 * var(--cae-frame-gap));
+  }
+
+  .bar__group {
+    flex-direction: row;
+    gap: 0;
+  }
+
+  /* Ten targets have to fit a 375px width without the row overflowing. */
+  .bar__item,
+  .bar__logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Hover-only and vertical-only affordances have no place on touch. */
+  .bar__brand,
+  .bar__divider,
+  .bar__clock,
+  .bar__flyout,
+  .osd,
+  .window__resize {
+    display: none;
+  }
+
+  .bar__group--brand {
+    flex: 0;
+  }
+
+  .bar__item::after {
+    inset: auto auto 2px 50%;
+    width: 16px;
+    height: 3px;
+    transform: translateX(-50%);
+  }
+
+  .bar__item[data-running='true']::after {
+    height: 3px;
+  }
+
+  /* Windows become full-bleed sheets — dragging a 375px window is pointless. */
+  .window {
+    inset: var(--cae-spacing-small) !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: var(--cae-rounding-extra-large);
+  }
+
+  .window__bar {
+    cursor: default;
+  }
+
+  /* The dashboard rows are laid out for a wide drawer; let them stack. */
+  .drawer__panel .row {
+    flex-wrap: wrap;
+  }
+
+  .drawer__tabs {
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  /* The opened notch is small on a phone; let its contents scroll. */
+  .drawer__viewport {
+    overflow-y: auto;
+  }
+
+  .drawer__tab {
+    flex: 1;
+    padding-inline: 8px;
+  }
+
+  /* No room beside the panel on a phone; it spans the screen instead. */
+  .launcher {
+    width: 100%;
+  }
+}
